@@ -1,0 +1,28 @@
+{
+  "name": "bridgetown_cms",
+  "version": "0.1.0",
+  "main": "frontend/javascript/index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/username/bridgetown_cms.git"
+  },
+  "scripts": {
+    "build": "node esbuild.config.js",
+    "build-watch": "node esbuild.config.js --watch",
+    "postinstall": "yarn build"
+  },
+  "author": "Bridgetown Maintainers <maintainers@bridgetownrb.com>",
+  "homepage": "https://www.bridgetownrb.com",
+  "license": "MIT",
+  "private": false,
+  "files": [
+    "frontend"
+  ],
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.23.1"
+  }
+}
