@@ -4,15 +4,15 @@
   "main": "frontend/javascript/index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/username/bridgetown_cms.git"
+    "url": "https://github.com/adrianvalenz/bridgetown_cms.git"
   },
   "scripts": {
     "build": "node esbuild.config.js",
     "build-watch": "node esbuild.config.js --watch",
     "postinstall": "yarn build"
   },
-  "author": "Bridgetown Maintainers <maintainers@bridgetownrb.com>",
-  "homepage": "https://www.bridgetownrb.com",
+  "author": "Adrian Valenzuela <adrianvalenz.web@gmail.com>",
+  "homepage": "https://adrianvalenz.com",
   "license": "MIT",
   "private": false,
   "files": [
