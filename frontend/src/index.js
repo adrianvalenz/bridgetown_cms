@@ -7,7 +7,7 @@ BridgetownCms()
 
 import React from "react";
 import ReactDOM from "react-dom";
-import AdminDashboard from "./components/AdminDashboard";
+import AdminDashboard from "./AdminDashboard";
 
 export { AdminDashboard };
 

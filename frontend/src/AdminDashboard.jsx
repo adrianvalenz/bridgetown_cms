@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
+import ConfirmationModal from "./components/ConfirmationModal";
 
 const AdminDashboard = () => {
   const [posts, setPosts] = useState([]);
   const [newPost, setNewPost] = useState({ title: "", content: ""});
   const [editMode, setEditMode] = useState(false);
   const [postToEdit, setPostToEdit] = useState(null);
+  const [isModalOpen, setModalOpen] = useState(false);
+  const [postToDelete, setPostToDelete] = useState(null);
 
   useEffect(() => {
     fetch("/api/posts")
@@ -64,6 +67,24 @@ const AdminDashboard = () => {
     setNewPost({ title: "", content: "" });
   }
 
+  const handleOpenModal = (post) => {
+    setPostToDelete(post);
+    setModalOpen(true);
+  }
+
+  const handleConfirmDelete = () => {
+    if (postToDelete) {
+      handleDeletePost(postToDelete.id);
+      setModalOpen(false);
+      setPostToDelete(null);
+    }
+  }
+
+  const handleCancelDelete = () => {
+    setModalOpen(false);
+    setPostToDelete(null);
+  }
+
   const handleDeletePost = (id) => {
     fetch(`/api/posts/${id}`, {
       method: "DELETE",
@@ -85,6 +106,7 @@ const AdminDashboard = () => {
             <h3>{post.title}</h3>
             <p>{post.content}</p>
             <button onClick={() => handleEditPost(post)}>Edit</button>
+            <button onClick={() => handleOpenModal(post)}>Delete?</button>
             <button onClick={() => handleDeletePost(post.id)}>Delete</button>
           </li>
         ))}
@@ -112,6 +134,13 @@ const AdminDashboard = () => {
       ) : (
         <button onClick={handleAddPost}>Add Post</button>
       )}
+
+      <ConfirmationModal
+        isOpen={isModalOpen}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        message={`Are you sure you want to delete "${postToDelete?.title}"?`}
+      />
     </div>
   );
 };
