@@ -84,13 +84,6 @@ module BridgetownCms
         # Default to "pretty" if not configured
         permalink_style = config.permalink || "pretty"
 
-        # Debug logging
-        Bridgetown.logger.info "=" * 80
-        Bridgetown.logger.info "DEBUG: Using config from: #{config.class}"
-        Bridgetown.logger.info "DEBUG: Raw permalink value: #{config.permalink.inspect}"
-        Bridgetown.logger.info "DEBUG: Permalink style after default: #{permalink_style.inspect}"
-        Bridgetown.logger.info "=" * 80
-
         case permalink_style.to_s
         when "simple"
           # Format: /:categories/:slug/

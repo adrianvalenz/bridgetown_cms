@@ -105,6 +105,40 @@ init :ssr  # Required for routes
 
 All changes trigger Bridgetown's live reload, so you'll see updates in real-time!
 
+## Permalink Configuration
+
+The plugin automatically generates "View Post" links in the admin panel based on your Bridgetown permalink configuration. It supports all four built-in permalink styles:
+
+### Permalink Styles
+
+Configure your permalink style in `config/initializers.rb`:
+
+```ruby
+Bridgetown.configure do |config|
+  permalink "simple"  # or "simple_ext", "pretty", "pretty_ext"
+end
+```
+
+Or in `bridgetown.config.yml` (for older Bridgetown sites):
+
+```yaml
+permalink: simple
+```
+
+**Available Styles:**
+
+| Style | Format | Example URL |
+|-------|--------|------------|
+| `simple` | `/:categories/:slug/` | `/updates/welcome-to-bridgetown/` |
+| `simple_ext` | `/:categories/:slug.html` | `/updates/welcome-to-bridgetown.html` |
+| `pretty` | `/:categories/:year/:month/:day/:slug/` | `/updates/2025/10/12/welcome-to-bridgetown/` |
+| `pretty_ext` | `/:categories/:year/:month/:day/:slug.html` | `/updates/2025/10/12/welcome-to-bridgetown.html` |
+
+**Notes:**
+- If no permalink style is configured, the plugin defaults to `pretty`
+- Categories from your post's front matter are automatically included in URLs
+- **Configuration changes require a server restart** to take effect (stop with `Ctrl+C` and run `bin/bridgetown start` again)
+
 ## How It Works
 
 - **Backend**: Ruby/Roda routes with file-based storage
