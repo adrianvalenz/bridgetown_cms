@@ -40,15 +40,17 @@ module BridgetownCms
     # Helper method to convert article to URL path
     # Supports all Bridgetown permalink styles: simple, simple_ext, pretty, pretty_ext
     # Handles categories in permalinks as per Bridgetown defaults
-    # Example: {id: "2024-01-15-my-post-title.md", categories: "updates"} -> "/updates/2024/01/15/my-post-title/" (for pretty style)
+    # Example: {id: "2024-01-15-my-post-title.md", categories: "updates", date: Time} -> "/updates/2024/01/15/my-post-title/" (for pretty style)
     def self.article_id_to_url(article)
       # Handle both Hash and article ID string for backwards compatibility
       if article.is_a?(Hash)
         article_id = article[:id]
         categories = article[:categories]
+        article_date = article[:date]
       else
         article_id = article
         categories = nil
+        article_date = nil
       end
 
       # Remove .md extension
@@ -57,11 +59,21 @@ module BridgetownCms
       # Split by hyphen to extract date and slug
       parts = filename_without_ext.split('-')
 
-      # Extract date parts (first 3) and slug (remaining)
+      # Extract date parts and slug
+      # Use the front matter date if available (Bridgetown uses this for URL generation)
+      # Otherwise fall back to filename date
       if parts.length >= 4
-        year = parts[0]
-        month = parts[1]
-        day = parts[2]
+        if article_date
+          # Use actual date from front matter (matches Bridgetown's behavior)
+          year = article_date.strftime("%Y")
+          month = article_date.strftime("%m")
+          day = article_date.strftime("%d")
+        else
+          # Fall back to filename date
+          year = parts[0]
+          month = parts[1]
+          day = parts[2]
+        end
         slug = parts[3..-1].join('-')
 
         # Build categories path if categories exist
@@ -189,12 +201,22 @@ module BridgetownCms
       method = is_edit ? "hx-put" : "hx-post"
       button_text = is_edit ? "Update Article" : "Create Article"
 
+      # For edit mode, target both the articles list and the form container
+      # For create mode, only target the articles list and reset the form
+      if is_edit
+        hx_target = "#articles-list-container"
+        hx_after_request = "if(event.detail.successful) { htmx.ajax('GET', '/admin/article-form', {target: '#article-form-container', swap: 'innerHTML'}); }"
+      else
+        hx_target = "#articles-list-container"
+        hx_after_request = "if(event.detail.successful) this.reset()"
+      end
+
       <<~HTML
         <div id="article-form">
           <form #{method}="#{action}"
-                hx-target="#articles-list-container"
+                hx-target="#{hx_target}"
                 hx-swap="innerHTML"
-                hx-on::after-request="if(event.detail.successful) this.reset()">
+                hx-on::after-request="#{hx_after_request}">
             <div class="mb-4">
               <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
                 Article Title <span class="text-red-500">*</span>
@@ -386,7 +408,9 @@ module BridgetownCms
 
                         # Update metadata
                         metadata["title"] = updated_params["title"] unless updated_params["title"].nil?
-                        metadata["date"] = Time.now
+                        # This will update the date to now on each edit; uncomment if desired
+                        # metadata["date"] = Time.now
+                        #
 
                         # Use new content if provided, otherwise keep existing
                         new_content = updated_params["content"]&.strip&.empty? ? content : updated_params["content"]
