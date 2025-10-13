@@ -78,8 +78,8 @@ module BridgetownCms
               <button class="text-red-600 hover:text-red-900"
                       hx-delete="/admin/api/articles/#{article[:id]}"
                       hx-confirm="Are you sure you want to delete '#{article[:title]}'?"
-                      hx-target="#article-#{article[:id]}"
-                      hx-swap="outerHTML swap:1s">
+                      hx-target="#articles-list-container"
+                      hx-swap="innerHTML">
                 Delete
               </button>
             </td>
@@ -339,7 +339,10 @@ module BridgetownCms
                   r.delete do
                     if File.exist?(article_filepath)
                       File.delete(article_filepath)
-                      ""
+
+                      # Return updated articles list HTML
+                      articles = AdminRoutes.load_articles
+                      AdminRoutes.render_articles_list(articles)
                     else
                       "<div class='text-red-600 p-4 bg-red-50 rounded-lg'>Error: Article not found</div>"
                     end
