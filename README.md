@@ -1,67 +1,176 @@
-# Sample plugin for Bridgetown
+# Bridgetown CMS
 
-_NOTE: This isn't a real plugin! Copy this sample code and use it to create your own Ruby gem! [Help guide here…](https://www.bridgetownrb.com/docs/plugins)_ 😃
+A content management system for Bridgetown sites. Easily create, edit, and delete posts
+using a simple web interface powered by HTMX and styled with Tailwind CSS.
 
-_You can run_ `bridgetown plugins new` _to easily set up a customized version of this starter repo._
+Currently supports only markdown posts stored in the `src/_posts/` directory.
 
-A Bridgetown plugin to [fill in the blank]…
+This plugin is intended to be used locally by developers or content creators. The assumption
+is that the site will be hosted as a static site. So any attempt to access the admin panel 
+in production will not work. Future plans will hopefully include authentication and user roles.
+
+## Features
+
+- 🚀 **Plug-and-play** - Minimal setup required
+- ⚡ **HTMX-powered** - No heavy JavaScript frameworks
+- ✨ **Full CRUD** - Create, Read, Update, Delete posts
+- 🎨 **Beautiful UI** - Tailwind CSS styling
+- 📝 **Markdown support** - Works with standard Bridgetown posts
+- 🔄 **Live reload** - Changes appear immediately in your site
 
 ## Installation
 
-Run this command to add this plugin to your site's Gemfile:
+### Quick Setup (Recommended)
 
-```shell
-bundle add my_awesome_plugin
-```
-
-Then add the initializer to your configuration in `config/initializers.rb`:
+1. **Add to your Gemfile:**
 
 ```ruby
-init :my_awesome_plugin
+gem "bridgetown_cms", git: "https://github.com/adrianvalenz/bridgetown_cms"
+
+# Or for local development:
+# gem "bridgetown_cms", path: "../bridgetown_cms"
 ```
 
-Or if there's a `bridgetown.automation.rb` automation script, you can run that instead for guided setup:
+2. **Install and run automation:**
 
 ```shell
-bin/bridgetown apply https://github.com/username/my_awesome_plugin
+bundle install
+bin/bridgetown apply https://github.com/adrianvalenz/bridgetown_cms
+```
+
+The automation script will automatically:
+- Create `server/routes/admin.rb` (bridge file for routes)
+- Add `init :bridgetown_cms` to your initializers
+- Add `init :ssr` to your initializers (required for routes)
+
+These are the only changes you'll need to make on your site! Everything else is handled by the plugin.
+
+3. **Start your server:**
+
+```shell
+bin/bridgetown start
+```
+
+4. **Access the admin panel:**
+
+Visit `http://localhost:4000/admin` 🎉
+
+### Manual Setup
+
+If you prefer manual setup or the automation fails:
+
+1. Add to your Gemfile and run `bundle install`
+
+2. Create `server/routes/admin.rb`:
+
+```ruby
+require "bridgetown_cms/admin_routes"
+
+class Routes::Admin < Bridgetown::Rack::Routes
+  route do |r|
+    BridgetownCms::AdminRoutes.define_routes(r)
+  end
+end
+```
+
+3. Add to `config/initializers.rb`:
+
+```ruby
+init :bridgetown_cms
+init :ssr  # Required for routes
 ```
 
 ## Usage
 
-The plugin will…
+### Creating an Article
 
-### Optional configuration options
+1. Visit `/admin` in your browser
+2. Fill in the article title (required)
+3. Add your content in markdown format
+4. Click "Create Article"
+5. Your article is saved to `src/_posts/YYYY-MM-DD-slug.md`
 
-The plugin will automatically use any of the following metadata variables if they are present in your site's `_data/site_metadata.yml` file.
+### Editing an Article
 
-…
+1. Click the "Edit" button next to any article in the list
+2. Modify the title or content
+3. Click "Update Article"
+4. Changes are saved immediately
 
-## Testing
+### Deleting an Article
 
-* Run `bundle exec rake test` to run the test suite
-* Or run `script/cibuild` to validate with Rubocop and Minitest together.
+1. Click the "Delete" button next to any article
+2. Confirm the deletion
+3. The file is permanently removed from `src/_posts/`
+
+All changes trigger Bridgetown's live reload, so you'll see updates in real-time!
+
+## How It Works
+
+- **Backend**: Ruby/Roda routes with file-based storage
+- **Frontend**: HTMX for dynamic interactions (no page refreshes)
+- **Styling**: Tailwind CSS (loaded via CDN)
+- **Content**: Standard Bridgetown markdown posts with YAML frontmatter
+- **Storage**: Files saved to `src/_posts/` directory
+- **Editing**: You can edit the markdown directly from the files and it will reflect in the admin panel
+
+## Requirements
+
+- Bridgetown 2.0+
+- Ruby 3.0+
+- SSR (Server-Side Rendering) must be enabled
+
+## Plugin Architecture
+
+The plugin consists of:
+
+- **`lib/bridgetown_cms/admin_routes.rb`** - All CRUD operations and HTML rendering
+- **`layouts/bridgetown_cms/admin_layout.erb`** - Admin interface layout with HTMX/Tailwind
+- **`content/bridgetown_cms/admin.md`** - Admin dashboard page
+- **`lib/bridgetown_cms/builder.rb`** - Plugin initialization
+- **`bridgetown.automation.rb`** - Installation automation script
 
 ## Contributing
 
-1. Fork it (https://github.com/username/my-awesome-plugin/fork)
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
 2. Clone the fork using `git clone` to your local development machine.
 3. Create your feature branch (`git checkout -b my-new-feature`)
 4. Commit your changes (`git commit -am 'Add some feature'`)
 5. Push to the branch (`git push origin my-new-feature`)
 6. Create a new Pull Request
 
-----
+## License
 
-## Releasing (you can delete this section in your own plugin repo)
+MIT
 
-To release a new version of the plugin, simply bump up the version number in both `version.rb` and
-`package.json`, and then run `script/release`. This will require you to have a registered account
-with both the [RubyGems.org](https://rubygems.org) and [NPM](https://www.npmjs.com) registries.
-You can optionally remove the `package.json` and `frontend` folder if you don't need to package frontend
-assets for Webpack.
+## Support
 
-If you run into any problems or need further guidance, please check out our [Bridgetown community resources](https://www.bridgetownrb.com/docs/community)
-where friendly folks are standing by to help you build and release your plugin or theme.
+If you encounter any issues or have questions, please open an issue on GitHub.
 
-**NOTE:** make sure you add the `bridgetown-plugin` [topic](https://github.com/topics/bridgetown-plugin) to your
-plugin's GitHub repo so the plugin or theme will show up on [Bridgetown's official Plugin Directory](https://www.bridgetownrb.com/plugins)! (There may be a day or so delay before you see it appear.)
+## Roadmap
+
+Future enhancements:
+- [ ] Image upload capability
+- [ ] Support for custom post types and formats
+- [ ] Rich text editor
+- [ ] User authentication and roles
+- [ ] Draft/publish workflow
+- [ ] Category and tag management
+
+---
+
+<!-- ## Releasing (you can delete this section in your own plugin repo) -->
+<!---->
+<!-- To release a new version of the plugin, simply bump up the version number in both `version.rb` and -->
+<!-- `package.json`, and then run `script/release`. This will require you to have a registered account -->
+<!-- with both the [RubyGems.org](https://rubygems.org) and [NPM](https://www.npmjs.com) registries. -->
+<!-- You can optionally remove the `package.json` and `frontend` folder if you don't need to package frontend -->
+<!-- assets for Webpack. -->
+<!---->
+<!-- If you run into any problems or need further guidance, please check out our [Bridgetown community resources](https://www.bridgetownrb.com/docs/community) -->
+<!-- where friendly folks are standing by to help you build and release your plugin or theme. -->
+<!---->
+<!-- **NOTE:** make sure you add the `bridgetown-plugin` [topic](https://github.com/topics/bridgetown-plugin) to your -->
+<!-- plugin's GitHub repo so the plugin or theme will show up on [Bridgetown's official Plugin Directory](https://www.bridgetownrb.com/plugins)! (There may be a day or so delay before you see it appear.) -->
