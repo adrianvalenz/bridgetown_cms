@@ -24,6 +24,7 @@ module BridgetownCms
             id: File.basename(filename),
             title: metadata["title"],
             date: metadata["date"],
+            categories: metadata["categories"],
             content: content&.strip
           }
         rescue => e
@@ -34,6 +35,76 @@ module BridgetownCms
       # Sort by date, newest first
       articles.sort_by! { |a| a[:date] || Time.at(0) }.reverse!
       articles
+    end
+
+    # Helper method to convert article to URL path
+    # Supports all Bridgetown permalink styles: simple, simple_ext, pretty, pretty_ext
+    # Handles categories in permalinks as per Bridgetown defaults
+    # Example: {id: "2024-01-15-my-post-title.md", categories: "updates"} -> "/updates/2024/01/15/my-post-title/" (for pretty style)
+    def self.article_id_to_url(article)
+      # Handle both Hash and article ID string for backwards compatibility
+      if article.is_a?(Hash)
+        article_id = article[:id]
+        categories = article[:categories]
+      else
+        article_id = article
+        categories = nil
+      end
+
+      # Remove .md extension
+      filename_without_ext = article_id.sub(/\.md$/, '')
+
+      # Split by hyphen to extract date and slug
+      parts = filename_without_ext.split('-')
+
+      # Extract date parts (first 3) and slug (remaining)
+      if parts.length >= 4
+        year = parts[0]
+        month = parts[1]
+        day = parts[2]
+        slug = parts[3..-1].join('-')
+
+        # Build categories path if categories exist
+        # Categories can be a string or array in Bridgetown
+        categories_path = ""
+        if categories
+          if categories.is_a?(Array)
+            categories_path = categories.join('/') + '/'
+          else
+            categories_path = categories.to_s + '/'
+          end
+        end
+
+        # Get permalink style from Bridgetown configuration
+        # In SSR mode, we need to use Bridgetown::Current.site.config instead of Bridgetown.configuration
+        config = defined?(Bridgetown::Current.site) && Bridgetown::Current.site ?
+                   Bridgetown::Current.site.config :
+                   Bridgetown.configuration
+
+        # Default to "pretty" if not configured
+        permalink_style = config.permalink || "pretty"
+
+        case permalink_style.to_s
+        when "simple"
+          # Format: /:categories/:slug/
+          "/#{categories_path}#{slug}/"
+        when "simple_ext"
+          # Format: /:categories/:slug.* (keeps extension like .html)
+          "/#{categories_path}#{slug}.html"
+        when "pretty"
+          # Format: /:categories/:year/:month/:day/:slug/
+          "/#{categories_path}#{year}/#{month}/#{day}/#{slug}/"
+        when "pretty_ext"
+          # Format: /:categories/:year/:month/:day/:slug.* (keeps extension like .html)
+          "/#{categories_path}#{year}/#{month}/#{day}/#{slug}.html"
+        else
+          # Fallback to pretty style for unknown configurations
+          "/#{categories_path}#{year}/#{month}/#{day}/#{slug}/"
+        end
+      else
+        # Fallback if format doesn't match expected pattern
+        "/#{filename_without_ext}/"
+      end
     end
 
     # Helper method to render articles list HTML
@@ -61,6 +132,7 @@ module BridgetownCms
           <tr id="article-#{article[:id]}" class="hover:bg-gray-50">
             <td class="px-6 py-4 whitespace-nowrap">
               <div class="text-sm font-medium text-gray-900">#{article[:title]}</div>
+              <div class="text-sm font-medium text-gray-900"><a href="#{AdminRoutes.article_id_to_url(article)}" class="text-blue-600 hover:text-blue-900" target="_blank">View Post</a></div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
               <div class="text-sm text-gray-500">#{date_str}</div>
@@ -78,8 +150,8 @@ module BridgetownCms
               <button class="text-red-600 hover:text-red-900"
                       hx-delete="/admin/api/articles/#{article[:id]}"
                       hx-confirm="Are you sure you want to delete '#{article[:title]}'?"
-                      hx-target="#article-#{article[:id]}"
-                      hx-swap="outerHTML swap:1s">
+                      hx-target="#articles-list-container"
+                      hx-swap="innerHTML">
                 Delete
               </button>
             </td>
@@ -180,6 +252,7 @@ module BridgetownCms
                       id: filename,
                       title: metadata["title"],
                       date: metadata["date"],
+                      categories: metadata["categories"],
                       content: content&.strip
                     }
 
@@ -218,6 +291,7 @@ module BridgetownCms
                         id: File.basename(filename),
                         title: metadata["title"],
                         date: metadata["date"],
+                        categories: metadata["categories"],
                         content: content&.strip
                       }
                     rescue => e
@@ -289,6 +363,7 @@ module BridgetownCms
                         id: filename,
                         title: metadata["title"],
                         date: metadata["date"],
+                        categories: metadata["categories"],
                         content: content&.strip
                       }.to_json
                     else
@@ -339,7 +414,10 @@ module BridgetownCms
                   r.delete do
                     if File.exist?(article_filepath)
                       File.delete(article_filepath)
-                      ""
+
+                      # Return updated articles list HTML
+                      articles = AdminRoutes.load_articles
+                      AdminRoutes.render_articles_list(articles)
                     else
                       "<div class='text-red-600 p-4 bg-red-50 rounded-lg'>Error: Article not found</div>"
                     end
