@@ -1,8 +1,0 @@
-/* Use in your app by simply adding to your app's index.css:
-
-@import "bridgetown_cms/frontend/styles/index.css";
-*/
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
