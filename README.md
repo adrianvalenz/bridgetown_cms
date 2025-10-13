@@ -135,6 +135,7 @@ permalink: simple
 | `pretty_ext` | `/:categories/:year/:month/:day/:slug.html` | `/updates/2025/10/12/welcome-to-bridgetown.html` |
 
 **Notes:**
+- The plugin automatically detects your permalink setting from **either** configuration file
 - If no permalink style is configured, the plugin defaults to `pretty`
 - Categories from your post's front matter are automatically included in URLs
 - **Configuration changes require a server restart** to take effect (stop with `Ctrl+C` and run `bin/bridgetown start` again)
@@ -150,9 +151,11 @@ permalink: simple
 
 ## Requirements
 
-- Bridgetown 2.0+
+- Bridgetown 2.0+ (or 1.x with SSR/Roda routes)
 - Ruby 3.0+
 - SSR (Server-Side Rendering) must be enabled
+
+**Note:** The plugin works with permalink settings in either `config/initializers.rb` (Bridgetown 2.0+) or `bridgetown.config.yml` (all versions). Bridgetown automatically merges configuration from all sources.
 
 ## Plugin Architecture
 
