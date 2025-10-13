@@ -6,24 +6,11 @@
     "type": "git",
     "url": "https://github.com/adrianvalenz/bridgetown_cms.git"
   },
-  "scripts": {
-    "build": "npx tailwindcss -i ./frontend/src/index.css -o ./frontend/styles/index.css && node esbuild.config.js",
-    "build-watch": "npx tailwindcss -i ./frontend/src/index.css -o ./frontend/styles/index.css --watch && node esbuild.config.js --watch",
-    "postinstall": "yarn build"
-  },
   "author": "Adrian Valenzuela <adrianvalenz.web@gmail.com>",
   "homepage": "https://adrianvalenz.com",
   "license": "MIT",
   "private": false,
   "files": [
     "frontend"
-  ],
-  "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "devDependencies": {
-    "esbuild": "^0.23.1",
-    "tailwindcss": "^3.4.12"
-  }
+  ]
 }
