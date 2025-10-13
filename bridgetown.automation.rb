@@ -33,36 +33,77 @@ if File.exist?(initializers_path)
   # Check if init :ssr is present
   unless initializers_content.match?(%r{^\s*init\s+:ssr})
     needs_update = true
-    updates << "init :ssr"
+    updates << "  init :ssr"
   end
 
   # Check if init :bridgetown_cms is present
   unless initializers_content.match?(%r{^\s*init\s+:bridgetown_cms})
     needs_update = true
-    updates << "init :bridgetown_cms"
+    updates << "  init :bridgetown_cms"
   end
 
   if needs_update
-    # Add the missing initializers
+    # Add the missing initializers inside the Bridgetown.configure block
     updated_content = initializers_content.dup
+    lines = updated_content.lines
 
-    # Find a good place to insert - after other init statements or at the beginning
-    if updated_content.match?(%r{^\s*init\s+})
-      # Find the last init statement and insert after it
-      lines = updated_content.lines
-      last_init_index = lines.rindex { |line| line.match?(%r{^\s*init\s+}) }
+    # Find the Bridgetown.configure block
+    configure_index = lines.index { |line| line.match?(/Bridgetown\.configure\s+do/) }
 
-      if last_init_index
-        lines.insert(last_init_index + 1, *updates.map { |u| "#{u}\n" })
-        updated_content = lines.join
+    if configure_index
+      # Look for the best place to insert inside the block
+      # Try to find existing init statements or the commented init examples
+      insert_index = nil
+
+      # First, try to find existing uncommented init statements
+      (configure_index + 1...lines.length).each do |i|
+        break if lines[i].match?(/^end\s*$/)  # Stop at the end of the block
+
+        if lines[i].match?(/^\s*init\s+:/) && !lines[i].strip.start_with?('#')
+          # Found an uncommented init statement, insert after it
+          insert_index = i + 1
+        end
       end
-    else
-      # Insert at the beginning of the file
-      updated_content = "#{updates.join("\n")}\n\n#{updated_content}"
-    end
 
-    File.write(initializers_path, updated_content)
-    say_status :bridgetown_cms, "Updated config/initializers.rb with: #{updates.join(", ")}"
+      # If no existing init statements, look for the commented init examples
+      unless insert_index
+        (configure_index + 1...lines.length).each do |i|
+          break if lines[i].match?(/^end\s*$/)
+
+          # Look for the "# init :dotenv" comment or similar
+          if lines[i].match?(/^\s*#\s*init\s+:/)
+            # Insert after the commented example and any following blank lines
+            insert_index = i + 1
+            while insert_index < lines.length && lines[insert_index].strip.empty?
+              insert_index += 1
+            end
+            break
+          end
+        end
+      end
+
+      # If still no good place found, insert right after the configure line
+      insert_index ||= configure_index + 1
+
+      # Insert with a blank line before if not right after configure
+      if insert_index > configure_index + 1
+        lines.insert(insert_index, "\n")
+        insert_index += 1
+      end
+
+      # Insert the init statements
+      updates.each do |init_line|
+        lines.insert(insert_index, "#{init_line}\n")
+        insert_index += 1
+      end
+
+      updated_content = lines.join
+      File.write(initializers_path, updated_content)
+      say_status :bridgetown_cms, "Updated config/initializers.rb with: #{updates.map(&:strip).join(", ")}"
+    else
+      say_status :bridgetown_cms,
+                 "Warning: Could not find Bridgetown.configure block. Please add 'init :ssr' and 'init :bridgetown_cms' manually inside the block.", :yellow
+    end
   else
     say_status :bridgetown_cms, "Initializers already configured"
   end
