@@ -9,6 +9,12 @@ This plugin is intended to be used locally by developers or content creators. Th
 is that the site will be hosted as a static site. So any attempt to access the admin panel 
 in production will not work. Future plans will hopefully include authentication and user roles.
 
+
+
+https://github.com/user-attachments/assets/97815512-4951-427c-972c-87d989ec96b1
+
+
+
 ## Features
 
 - 🚀 **Plug-and-play** - Minimal setup required
