@@ -11,6 +11,13 @@
   <!-- HTMX -->
   <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 
+  <!-- EasyMDE Markdown Editor -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+
+  <!-- Font Awesome for editor icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
   <style>
     /* Custom loading indicator */
     .htmx-indicator {
@@ -21,6 +28,36 @@
     }
     .htmx-request.htmx-indicator {
       display: inline-block;
+    }
+
+    /* EasyMDE customizations to work with Tailwind */
+    .EasyMDEContainer .CodeMirror {
+      border: 1px solid #d1d5db;
+      border-radius: 0.5rem;
+      min-height: 300px;
+    }
+    .EasyMDEContainer .CodeMirror-focused {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    .editor-toolbar {
+      border: 1px solid #d1d5db;
+      border-bottom: none;
+      border-radius: 0.5rem 0.5rem 0 0;
+      background-color: #f9fafb;
+    }
+    .editor-toolbar button {
+      color: #4b5563 !important;
+    }
+    .editor-toolbar button:hover {
+      background-color: #e5e7eb;
+      border-color: #d1d5db;
+    }
+    .editor-toolbar.fullscreen {
+      z-index: 1000;
+    }
+    .CodeMirror-fullscreen {
+      z-index: 1000;
     }
   </style>
 </head>
@@ -58,5 +95,180 @@
       </p>
     </div>
   </footer>
+
+  <script>
+    // Keep track of the current editor instance (global so HTMX can access it)
+    window.currentEditor = null;
+
+    // Custom upload image function
+    function uploadImage(editor) {
+      // Create a file input element
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+
+      input.onchange = async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Create FormData for upload
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+          // Show upload indicator in editor
+          const cm = editor.codemirror;
+          const cursor = cm.getCursor();
+          cm.replaceRange('\n![Uploading...]()\n', cursor);
+
+          // Upload the file
+          const response = await fetch('/admin/api/upload-image', {
+            method: 'POST',
+            body: formData
+          });
+
+          const result = await response.json();
+
+          if (result.success) {
+            // Replace the placeholder with actual image markdown
+            const content = cm.getValue();
+            const newContent = content.replace(
+              '![Uploading...]()',
+              `![${result.filename}](${result.url})`
+            );
+            cm.setValue(newContent);
+
+            // Show success message
+            console.log('Image uploaded successfully:', result.url);
+          } else {
+            // Remove placeholder and show error
+            const content = cm.getValue();
+            const newContent = content.replace('![Uploading...]()', '');
+            cm.setValue(newContent);
+            alert('Error uploading image: ' + (result.error || 'Unknown error'));
+          }
+        } catch (error) {
+          // Remove placeholder and show error
+          const cm = editor.codemirror;
+          const content = cm.getValue();
+          const newContent = content.replace('![Uploading...]()', '');
+          cm.setValue(newContent);
+          alert('Error uploading image: ' + error.message);
+        }
+      };
+
+      // Trigger file picker
+      input.click();
+    }
+
+    // Function to initialize EasyMDE on a textarea
+    function initializeEditor() {
+      const textarea = document.getElementById('content');
+
+      if (!textarea) {
+        console.log('EasyMDE: textarea with id="content" not found yet');
+        return;
+      }
+
+      // Check if EasyMDE is loaded
+      if (typeof EasyMDE === 'undefined') {
+        console.error('EasyMDE library not loaded!');
+        return;
+      }
+
+      // Destroy existing editor if it exists
+      if (window.currentEditor) {
+        try {
+          window.currentEditor.toTextArea();
+          window.currentEditor = null;
+        } catch (e) {
+          console.warn('Error destroying previous editor:', e);
+        }
+      }
+
+      // If textarea is empty, clear autosaved value to prevent restoration
+      if (!textarea.value || textarea.value.trim() === '') {
+        localStorage.removeItem('smde_bridgetown-cms-content');
+        console.log('Cleared autosaved content for empty form');
+      }
+
+      console.log('Initializing EasyMDE editor...');
+
+      // Initialize EasyMDE with custom configuration
+      try {
+        window.currentEditor = new EasyMDE({
+        element: textarea,
+        spellChecker: false,
+        placeholder: "Write your article content here using Markdown...",
+        status: ["autosave", "lines", "words", "cursor"],
+        toolbar: [
+          "bold", "italic", "heading", "|",
+          "quote", "unordered-list", "ordered-list", "|",
+          "link",
+          {
+            name: "upload-image",
+            action: function(editor) {
+              uploadImage(editor);
+            },
+            className: "fa fa-image",
+            title: "Upload Image",
+          },
+          "|",
+          "preview", "side-by-side", "fullscreen", "|",
+          "guide"
+        ],
+        autosave: {
+          enabled: true,
+          uniqueId: "bridgetown-cms-content",
+          delay: 1000,
+        },
+        renderingConfig: {
+          singleLineBreaks: false,
+          codeSyntaxHighlighting: true,
+        }
+      });
+
+      console.log('EasyMDE editor initialized successfully!');
+      } catch (e) {
+        console.error('Error initializing EasyMDE:', e);
+      }
+    }
+
+    // Initialize editor on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      // Longer delay to let HTMX load the form first
+      setTimeout(function() {
+        initializeEditor();
+      }, 300);
+    });
+
+    // Re-initialize editor when HTMX loads new content
+    document.body.addEventListener('htmx:afterSwap', function(event) {
+      // Check if the target is the article form container or contains the content textarea
+      const target = event.detail.target;
+
+      if (target.id === 'article-form-container' ||
+          (target.querySelector && target.querySelector('#content'))) {
+        // Small delay to ensure DOM is fully updated
+        setTimeout(function() {
+          initializeEditor();
+        }, 150);
+      }
+    });
+
+    // Use htmx:configRequest to modify request parameters with editor content
+    document.body.addEventListener('htmx:configRequest', function(event) {
+      // Check if this is an article form submission (POST or PUT)
+      const form = event.target;
+      if (form && form.id === 'article-form-element') {
+        if (window.currentEditor) {
+          const content = window.currentEditor.value();
+          // Directly update the parameters object with editor content
+          event.detail.parameters.content = content;
+          console.log('Editor content synced (' + content.length + ' chars)');
+        }
+      }
+    });
+  </script>
 </body>
 </html>

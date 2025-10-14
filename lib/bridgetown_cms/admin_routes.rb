@@ -8,6 +8,7 @@ module BridgetownCms
   class AdminRoutes
     # Define the posts directory relative to the Bridgetown site root
     POSTS_DIRECTORY = "src/_posts"
+    IMAGES_DIRECTORY = "src/images/uploads"
 
     # Helper method to load all articles
     def self.load_articles
@@ -208,12 +209,13 @@ module BridgetownCms
         hx_after_request = "if(event.detail.successful) { htmx.ajax('GET', '/admin/article-form', {target: '#article-form-container', swap: 'innerHTML'}); }"
       else
         hx_target = "#articles-list-container"
-        hx_after_request = "if(event.detail.successful) this.reset()"
+        hx_after_request = "if(event.detail.successful) { this.reset(); if(window.currentEditor) { window.currentEditor.value(''); } }"
       end
 
       <<~HTML
         <div id="article-form">
-          <form #{method}="#{action}"
+          <form id="article-form-element"
+                #{method}="#{action}"
                 hx-target="#{hx_target}"
                 hx-swap="innerHTML"
                 hx-on::after-request="#{hx_after_request}">
@@ -226,10 +228,8 @@ module BridgetownCms
                      placeholder="Enter article title..." />
             </div>
             <div class="mb-4">
-              <label for="content" class="block text-sm font-medium text-gray-700 mb-2">Content</label>
-              <textarea id="content" name="content" rows="8"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Write your article content here...">#{content}</textarea>
+              <label for="content" class="block text-sm font-medium text-gray-700 mb-2">Content (Markdown)</label>
+              <textarea id="content" name="content">#{content}</textarea>
             </div>
             <div class="flex items-center justify-between">
               <div class="flex space-x-3">
@@ -239,7 +239,7 @@ module BridgetownCms
                 </button>
                 #{is_edit ? '<button type="button" hx-get="/admin/article-form" hx-target="#article-form-container" hx-swap="innerHTML" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Cancel</button>' : ''}
               </div>
-              #{is_edit ? '' : '<button type="reset" class="text-sm text-gray-500 hover:text-gray-700">Clear Form</button>'}
+              #{is_edit ? '' : '<button type="button" onclick="document.getElementById(\'article-form-element\').reset(); if(window.currentEditor) { window.currentEditor.codemirror.setValue(\'\'); window.currentEditor.clearAutosavedValue(); }" class="text-sm text-gray-500 hover:text-gray-700">Clear Form</button>'}
             </div>
           </form>
         </div>
@@ -294,6 +294,44 @@ module BridgetownCms
 
             # API endpoints for CRUD operations
             r.on "api" do
+              # Image upload endpoint
+              r.on "upload-image" do
+                r.post do
+                  file = r.params["image"]
+
+                  if file && file[:tempfile]
+                    images_path = File.join(Bridgetown.configuration.root_dir, IMAGES_DIRECTORY)
+                    FileUtils.mkdir_p(images_path) unless Dir.exist?(images_path)
+
+                    # Generate unique filename with timestamp to avoid conflicts
+                    timestamp = Time.now.strftime("%Y%m%d-%H%M%S")
+                    original_filename = file[:filename]
+                    ext = File.extname(original_filename)
+                    base = File.basename(original_filename, ext)
+                    # Sanitize filename
+                    safe_base = base.downcase.gsub(/[^a-z0-9\s-]/, "").gsub(/\s+/, "-")
+                    new_filename = "#{timestamp}-#{safe_base}#{ext}"
+
+                    file_path = File.join(images_path, new_filename)
+
+                    # Save the file
+                    File.open(file_path, 'wb') do |f|
+                      f.write(file[:tempfile].read)
+                    end
+
+                    # Return the path relative to the site root for markdown
+                    image_url = "/images/uploads/#{new_filename}"
+
+                    r.response.headers["Content-Type"] = "application/json"
+                    { success: true, url: image_url, filename: new_filename }.to_json
+                  else
+                    r.response.status = 400
+                    r.response.headers["Content-Type"] = "application/json"
+                    { success: false, error: "No file provided" }.to_json
+                  end
+                end
+              end
+
               r.on "articles" do
                 # GET /admin/api/articles - List all articles
                 r.get do

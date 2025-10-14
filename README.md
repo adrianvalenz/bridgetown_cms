@@ -21,7 +21,9 @@ https://github.com/user-attachments/assets/97815512-4951-427c-972c-87d989ec96b1
 - ⚡ **HTMX-powered** - No heavy JavaScript frameworks
 - ✨ **Full CRUD** - Create, Read, Update, Delete posts
 - 🎨 **Beautiful UI** - Tailwind CSS styling
-- 📝 **Markdown support** - Works with standard Bridgetown posts
+- 📝 **Markdown editor** - EasyMDE with live preview, syntax highlighting, and toolbar
+- 🖼️ **Image uploads** - Upload images directly from the editor with auto-markdown insertion
+- 💾 **Autosave** - Your work is automatically saved as you type
 - 🔄 **Live reload** - Changes appear immediately in your site
 
 ## Installation
@@ -92,7 +94,7 @@ init :ssr  # Required for routes
 
 1. Visit `/admin` in your browser
 2. Fill in the article title (required)
-3. Add your content in markdown format
+3. Add your content using the markdown editor
 4. Click "Create Article"
 5. Your article is saved to `src/_posts/YYYY-MM-DD-slug.md`
 
@@ -108,6 +110,29 @@ init :ssr  # Required for routes
 1. Click the "Delete" button next to any article
 2. Confirm the deletion
 3. The file is permanently removed from `src/_posts/`
+
+### Using the Markdown Editor
+
+The editor includes a full-featured toolbar with:
+
+- **Formatting**: Bold, italic, headings
+- **Lists**: Ordered and unordered lists
+- **Quotes**: Block quotes
+- **Links**: Insert hyperlinks
+- **Images**: Upload images directly (see below)
+- **Preview**: Live preview and side-by-side mode
+- **Fullscreen**: Distraction-free writing mode
+- **Autosave**: Your work is automatically saved to localStorage
+
+### Uploading Images
+
+1. Click the image icon (📷) in the editor toolbar
+2. Select an image from your computer
+3. The image is uploaded to `src/images/uploads/`
+4. Markdown syntax is automatically inserted: `![filename](/images/uploads/filename.jpg)`
+5. Images are immediately viewable in the preview pane
+
+**Supported formats**: JPG, PNG, GIF, WebP, and other common image formats
 
 All changes trigger Bridgetown's live reload, so you'll see updates in real-time!
 
@@ -150,9 +175,10 @@ permalink: simple
 
 - **Backend**: Ruby/Roda routes with file-based storage
 - **Frontend**: HTMX for dynamic interactions (no page refreshes)
+- **Editor**: EasyMDE markdown editor with live preview and autosave
 - **Styling**: Tailwind CSS (loaded via CDN)
 - **Content**: Standard Bridgetown markdown posts with YAML frontmatter
-- **Storage**: Files saved to `src/_posts/` directory
+- **Storage**: Posts saved to `src/_posts/`, images to `src/images/uploads/`
 - **Editing**: You can edit the markdown directly from the files and it will reflect in the admin panel
 
 ## Requirements
@@ -195,12 +221,13 @@ If you encounter any issues or have questions, please open an issue on GitHub.
 ## Roadmap
 
 Future enhancements:
-- [ ] Image upload capability
+- [x] Image upload capability
+- [x] Rich text editor (EasyMDE with markdown)
 - [ ] Support for custom post types and formats
-- [ ] Rich text editor
 - [ ] User authentication and roles
 - [ ] Draft/publish workflow
 - [ ] Category and tag management
+- [ ] Drag-and-drop image uploads
 
 ---
 
