@@ -63,6 +63,70 @@ bin/bridgetown start
 
 Visit `http://localhost:4000/admin` 🎉
 
+## Upgrading
+
+To upgrade to the latest version of Bridgetown CMS:
+
+### From GitHub (Most Common)
+
+Since this plugin is hosted on GitHub (not RubyGems), make sure your Gemfile includes the `git:` source:
+
+```ruby
+gem "bridgetown_cms", git: "https://github.com/adrianvalenz/bridgetown_cms"
+```
+
+Then update to the latest version:
+
+```shell
+bundle update bridgetown_cms
+```
+
+Restart your server:
+
+```shell
+# Stop the server (Ctrl+C) and restart
+bin/bridgetown start
+```
+
+### Using a Specific Version/Tag
+
+To lock to a specific version tag, update your Gemfile:
+
+```ruby
+gem "bridgetown_cms", git: "https://github.com/adrianvalenz/bridgetown_cms", tag: "v0.2.0"
+```
+
+Or to track a specific branch:
+
+```ruby
+gem "bridgetown_cms", git: "https://github.com/adrianvalenz/bridgetown_cms", branch: "main"
+```
+
+Then run:
+
+```shell
+bundle update bridgetown_cms
+bin/bridgetown start
+```
+
+### From Local Development
+
+If you're developing locally:
+
+```ruby
+gem "bridgetown_cms", path: "../bridgetown_cms"
+```
+
+No update command needed - changes are reflected immediately (just restart the server).
+
+### Checking Your Version
+
+The version number is displayed in the bottom-right corner of the admin interface footer. Visit `/admin` to see which version you're currently running.
+
+### Release Notes
+
+See [CHANGELOG.md](https://github.com/adrianvalenz/bridgetown_cms/blob/main/CHANGELOG.md) for a complete list of changes in each version.
+
 ### Manual Setup
 
 If you prefer manual setup or the automation fails:
