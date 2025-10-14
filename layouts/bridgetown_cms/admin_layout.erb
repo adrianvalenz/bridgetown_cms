@@ -186,6 +186,12 @@
         }
       }
 
+      // If textarea is empty, clear autosaved value to prevent restoration
+      if (!textarea.value || textarea.value.trim() === '') {
+        localStorage.removeItem('smde_bridgetown-cms-content');
+        console.log('Cleared autosaved content for empty form');
+      }
+
       console.log('Initializing EasyMDE editor...');
 
       // Initialize EasyMDE with custom configuration
