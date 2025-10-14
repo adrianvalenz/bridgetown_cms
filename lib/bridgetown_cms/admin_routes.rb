@@ -292,44 +292,46 @@ module BridgetownCms
               AdminRoutes.render_article_form
             end
 
-            # POST /admin/upload-image - Handle image uploads
-            r.post "upload-image" do
-              file = r.params["image"]
-
-              if file && file[:tempfile]
-                images_path = File.join(Bridgetown.configuration.root_dir, IMAGES_DIRECTORY)
-                FileUtils.mkdir_p(images_path) unless Dir.exist?(images_path)
-
-                # Generate unique filename with timestamp to avoid conflicts
-                timestamp = Time.now.strftime("%Y%m%d-%H%M%S")
-                original_filename = file[:filename]
-                ext = File.extname(original_filename)
-                base = File.basename(original_filename, ext)
-                # Sanitize filename
-                safe_base = base.downcase.gsub(/[^a-z0-9\s-]/, "").gsub(/\s+/, "-")
-                new_filename = "#{timestamp}-#{safe_base}#{ext}"
-
-                file_path = File.join(images_path, new_filename)
-
-                # Save the file
-                File.open(file_path, 'wb') do |f|
-                  f.write(file[:tempfile].read)
-                end
-
-                # Return the path relative to the site root for markdown
-                image_url = "/images/uploads/#{new_filename}"
-
-                response.headers["Content-Type"] = "application/json"
-                { success: true, url: image_url, filename: new_filename }.to_json
-              else
-                response.status = 400
-                response.headers["Content-Type"] = "application/json"
-                { success: false, error: "No file provided" }.to_json
-              end
-            end
-
             # API endpoints for CRUD operations
             r.on "api" do
+              # Image upload endpoint
+              r.on "upload-image" do
+                r.post do
+                  file = r.params["image"]
+
+                  if file && file[:tempfile]
+                    images_path = File.join(Bridgetown.configuration.root_dir, IMAGES_DIRECTORY)
+                    FileUtils.mkdir_p(images_path) unless Dir.exist?(images_path)
+
+                    # Generate unique filename with timestamp to avoid conflicts
+                    timestamp = Time.now.strftime("%Y%m%d-%H%M%S")
+                    original_filename = file[:filename]
+                    ext = File.extname(original_filename)
+                    base = File.basename(original_filename, ext)
+                    # Sanitize filename
+                    safe_base = base.downcase.gsub(/[^a-z0-9\s-]/, "").gsub(/\s+/, "-")
+                    new_filename = "#{timestamp}-#{safe_base}#{ext}"
+
+                    file_path = File.join(images_path, new_filename)
+
+                    # Save the file
+                    File.open(file_path, 'wb') do |f|
+                      f.write(file[:tempfile].read)
+                    end
+
+                    # Return the path relative to the site root for markdown
+                    image_url = "/images/uploads/#{new_filename}"
+
+                    r.response.headers["Content-Type"] = "application/json"
+                    { success: true, url: image_url, filename: new_filename }.to_json
+                  else
+                    r.response.status = 400
+                    r.response.headers["Content-Type"] = "application/json"
+                    { success: false, error: "No file provided" }.to_json
+                  end
+                end
+              end
+
               r.on "articles" do
                 # GET /admin/api/articles - List all articles
                 r.get do

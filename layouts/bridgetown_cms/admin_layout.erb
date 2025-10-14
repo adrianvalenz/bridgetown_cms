@@ -122,7 +122,7 @@
           cm.replaceRange('\n![Uploading...]()\n', cursor);
 
           // Upload the file
-          const response = await fetch('/admin/upload-image', {
+          const response = await fetch('/admin/api/upload-image', {
             method: 'POST',
             body: formData
           });
