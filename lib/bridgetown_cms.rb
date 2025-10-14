@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "bridgetown"
+require "bridgetown_cms/version"
 require "bridgetown_cms/builder"
 
 # @param config [Bridgetown::Configuration::ConfigurationDSL]
