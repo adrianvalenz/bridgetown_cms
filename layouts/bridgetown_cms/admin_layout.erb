@@ -90,9 +90,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-gray-200 mt-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-      <p class="text-center text-sm text-gray-500">
-        Powered by <a href="https://www.bridgetownrb.com" class="text-blue-600 hover:text-blue-800">Bridgetown</a>
-      </p>
+      <div class="flex items-center justify-between text-sm text-gray-500">
+        <p>
+          Powered by <a href="https://www.bridgetownrb.com" class="text-blue-600 hover:text-blue-800">Bridgetown</a>
+        </p>
+        <p>
+          <span class="text-gray-400">Bridgetown CMS</span> <span class="font-mono text-xs">v<%= BridgetownCms::VERSION %></span>
+        </p>
+      </div>
     </div>
   </footer>
 
