@@ -12,13 +12,13 @@ permalink: /admin/
   </div>
 
   <!-- Article Form Section -->
-  <div id="article-form-container" class="bg-white rounded-lg shadow p-6">
+  <div class="bg-white rounded-lg shadow p-6">
     <h3 class="text-xl font-semibold text-gray-900 mb-4">Create New Article</h3>
     <!-- Article form will be loaded here via HTMX -->
-    <div hx-get="/admin/article-form"
+    <div id="article-form-container"
+         hx-get="/admin/article-form"
          hx-trigger="load"
-         hx-target="this"
-         hx-swap="outerHTML">
+         hx-swap="innerHTML">
       <!-- Loading indicator -->
       <div class="flex items-center justify-center py-4">
         <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
