@@ -10,6 +10,23 @@ module BridgetownCms
     POSTS_DIRECTORY = "src/_posts"
     IMAGES_DIRECTORY = "src/images/uploads"
 
+    # Helper method to normalize date values for sorting
+    # Handles Time objects, String dates, and nil values
+    def self.normalize_date(date_value)
+      case date_value
+      when Time
+        date_value
+      when String
+        begin
+          Time.parse(date_value)
+        rescue ArgumentError
+          Time.at(0) # Fallback for unparseable strings
+        end
+      else
+        Time.at(0) # Fallback for nil or other types
+      end
+    end
+
     # Helper method to load all articles
     def self.load_articles
       articles = []
@@ -34,7 +51,7 @@ module BridgetownCms
       end
 
       # Sort by date, newest first
-      articles.sort_by! { |a| a[:date] || Time.at(0) }.reverse!
+      articles.sort_by! { |a| normalize_date(a[:date]) }.reverse!
       articles
     end
 
@@ -66,9 +83,11 @@ module BridgetownCms
       if parts.length >= 4
         if article_date
           # Use actual date from front matter (matches Bridgetown's behavior)
-          year = article_date.strftime("%Y")
-          month = article_date.strftime("%m")
-          day = article_date.strftime("%d")
+          # Normalize the date to handle both Time objects and string dates
+          normalized_date = normalize_date(article_date)
+          year = normalized_date.strftime("%Y")
+          month = normalized_date.strftime("%m")
+          day = normalized_date.strftime("%d")
         else
           # Fall back to filename date
           year = parts[0]
@@ -139,7 +158,8 @@ module BridgetownCms
       rows = articles.map do |article|
         preview = article[:content]&.slice(0, 100) || ""
         preview += "..." if article[:content]&.length.to_i > 100
-        date_str = article[:date]&.strftime("%B %d, %Y") || "No date"
+        normalized_date = normalize_date(article[:date])
+        date_str = normalized_date != Time.at(0) ? normalized_date.strftime("%B %d, %Y") : "No date"
 
         <<~HTML
           <tr id="article-#{article[:id]}" class="hover:bg-gray-50">
@@ -361,7 +381,7 @@ module BridgetownCms
                   end
 
                   # Sort by date, newest first
-                  articles.sort_by! { |a| a[:date] || Time.at(0) }.reverse!
+                  articles.sort_by! { |a| normalize_date(a[:date]) }.reverse!
 
                   response.headers["Content-Type"] = "application/json"
                   articles.to_json
