@@ -22,6 +22,29 @@ end
 
 say_status :bridgetown_cms, "Admin routes created at server/routes/admin.rb"
 
+# Update server/roda_app.rb to configure Rodauth
+roda_app_path = "server/roda_app.rb"
+if File.exist?(roda_app_path)
+  roda_app_content = File.read(roda_app_path)
+
+  # Check if Rodauth is already configured
+  unless roda_app_content.include?("bridgetown_cms/rodauth_config")
+    # Find the RodaApp class and add configuration after plugin :bridgetown_server
+    updated_content = roda_app_content.sub(
+      /(class RodaApp < Roda\s+plugin :bridgetown_server)/,
+      "require \"bridgetown_cms/rodauth_config\"\n\n\\1\n\n  # Configure Rodauth for Bridgetown CMS authentication\n  BridgetownCms::RodauthConfig.configure(self)"
+    )
+
+    File.write(roda_app_path, updated_content)
+    say_status :bridgetown_cms, "Updated server/roda_app.rb with Rodauth configuration"
+  else
+    say_status :bridgetown_cms, "Rodauth already configured in server/roda_app.rb"
+  end
+else
+  say_status :bridgetown_cms,
+             "Warning: server/roda_app.rb not found. Please manually add Rodauth configuration.", :yellow
+end
+
 # Update config/initializers.rb to add required initializers
 initializers_path = "config/initializers.rb"
 

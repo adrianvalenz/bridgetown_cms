@@ -5,9 +5,9 @@ using a simple web interface powered by HTMX and styled with Tailwind CSS.
 
 Currently supports only markdown posts stored in the `src/_posts/` directory.
 
-This plugin is intended to be used locally by developers or content creators. The assumption
-is that the site will be hosted as a static site. So any attempt to access the admin panel 
-in production will not work. Future plans will hopefully include authentication and user roles.
+**Now with full authentication!** The plugin includes Rodauth-based authentication with user
+management, role-based access control, and session management. Deploy confidently to production
+with secure, password-protected admin access.
 
 
 
@@ -20,6 +20,8 @@ https://github.com/user-attachments/assets/97815512-4951-427c-972c-87d989ec96b1
 - 🚀 **Plug-and-play** - Minimal setup required
 - ⚡ **HTMX-powered** - No heavy JavaScript frameworks
 - ✨ **Full CRUD** - Create, Read, Update, Delete posts
+- 🔐 **Authentication** - Rodauth-based authentication with role-based access control
+- 👥 **User Management** - Multi-user support with Admin and Author roles
 - 🎨 **Beautiful UI** - Tailwind CSS styling
 - 📝 **Markdown editor** - EasyMDE with live preview, syntax highlighting, and toolbar
 - 🖼️ **Image uploads** - Upload images directly from the editor with auto-markdown insertion
@@ -200,6 +202,223 @@ The editor includes a full-featured toolbar with:
 
 All changes trigger Bridgetown's live reload, so you'll see updates in real-time!
 
+## Authentication & User Management
+
+### First-Time Setup
+
+When you first visit `/admin`, you'll be automatically redirected to the setup page where you can create your first admin account. After setup, you'll need to log in with your credentials.
+
+### User Roles
+
+- **Admin**: Full access to all features, can manage all posts
+- **Author**: Can create and edit their own posts only
+
+### Managing Users via Console
+
+You can manage users programmatically using the Bridgetown console. This is useful for administrative tasks like creating users, resetting passwords, or managing roles.
+
+#### Starting the Console
+
+```shell
+bin/bridgetown console
+```
+
+#### Load Required Classes
+
+Once in the console, load the necessary classes:
+
+```ruby
+# First, require the main plugin
+require 'bridgetown_cms'
+
+# Then require the authentication modules
+require 'bridgetown_cms/database'
+require 'bridgetown_cms/roles'
+require 'bcrypt'
+
+# Get database connection
+db = BridgetownCms::Database.connection
+```
+
+#### View All Users
+
+```ruby
+# List all users
+db[:accounts].all
+
+# Get user count
+db[:accounts].count
+
+# View users with their roles
+db[:accounts].left_join(:cms_roles, account_id: :id).select_all.all
+```
+
+#### View Specific User
+
+```ruby
+# Find user by email
+user = db[:accounts].where(email: 'user@example.com').first
+
+# Find user by ID
+user = db[:accounts].where(id: 1).first
+
+# Get user's role
+role = BridgetownCms::Roles.get_role(user[:id])
+```
+
+#### Create a New User
+
+```ruby
+# Create a new admin user
+email = 'admin@example.com'
+password = 'secure_password_here'
+password_hash = BCrypt::Password.create(password)
+
+# Insert account
+account_id = db[:accounts].insert(
+  email: email,
+  password_hash: password_hash,
+  created_at: Time.now,
+  updated_at: Time.now
+)
+
+# Assign admin role
+BridgetownCms::Roles.create_role(account_id, 'admin', 'Admin User')
+
+# Or create an author user
+account_id = db[:accounts].insert(
+  email: 'author@example.com',
+  password_hash: BCrypt::Password.create('password'),
+  created_at: Time.now,
+  updated_at: Time.now
+)
+
+BridgetownCms::Roles.create_role(account_id, 'author', 'Content Author')
+```
+
+#### Update User
+
+```ruby
+# Update user email
+db[:accounts].where(id: 1).update(
+  email: 'newemail@example.com',
+  updated_at: Time.now
+)
+
+# Update user password
+new_password_hash = BCrypt::Password.create('new_password')
+db[:accounts].where(id: 1).update(
+  password_hash: new_password_hash,
+  updated_at: Time.now
+)
+
+# Update user role
+BridgetownCms::Roles.update_role(1, 'admin', 'Super Admin')
+```
+
+#### Delete User
+
+```ruby
+# Delete user and their role
+user_id = 1
+
+# First delete the role
+db[:cms_roles].where(account_id: user_id).delete
+
+# Then delete the account
+db[:accounts].where(id: user_id).delete
+
+# Confirm deletion
+db[:accounts].where(id: user_id).count  # Should return 0
+```
+
+#### Check User Permissions
+
+```ruby
+# Check if user is admin
+user_id = 1
+BridgetownCms::Roles.admin?(user_id)  # Returns true or false
+
+# Get user's role
+BridgetownCms::Roles.get_role(user_id)  # Returns role hash
+```
+
+#### Find Users by Role
+
+```ruby
+# Find all admins
+admins = db[:cms_roles].where(role: 'admin').select(:account_id).all
+admin_ids = admins.map { |r| r[:account_id] }
+db[:accounts].where(id: admin_ids).all
+
+# Find all authors
+authors = db[:cms_roles].where(role: 'author').select(:account_id).all
+author_ids = authors.map { |r| r[:account_id] }
+db[:accounts].where(id: author_ids).all
+```
+
+#### Bulk Operations
+
+```ruby
+# Create multiple users at once
+users = [
+  { email: 'user1@example.com', role: 'admin', name: 'User 1' },
+  { email: 'user2@example.com', role: 'author', name: 'User 2' },
+  { email: 'user3@example.com', role: 'author', name: 'User 3' }
+]
+
+users.each do |user_data|
+  account_id = db[:accounts].insert(
+    email: user_data[:email],
+    password_hash: BCrypt::Password.create('default_password'),
+    created_at: Time.now,
+    updated_at: Time.now
+  )
+  BridgetownCms::Roles.create_role(account_id, user_data[:role], user_data[:name])
+end
+
+# View results
+db[:accounts].count
+```
+
+#### Database Backup
+
+```ruby
+# Export all users to a hash
+users_backup = db[:accounts].left_join(:cms_roles, account_id: :id).select_all.all
+
+# Save to a file
+require 'json'
+File.write('users_backup.json', JSON.pretty_generate(users_backup))
+```
+
+#### Useful Database Queries
+
+```ruby
+# Get total user count
+db[:accounts].count
+
+# Get users created in the last 7 days
+db[:accounts].where { created_at > Time.now - (7 * 24 * 60 * 60) }.all
+
+# Get users by email domain
+db[:accounts].where(Sequel.like(:email, '%@example.com')).all
+
+# List all tables in the database
+db.tables
+
+# View table schema
+db.schema(:accounts)
+db.schema(:cms_roles)
+```
+
+### Security Notes
+
+- Always use strong passwords when creating users via console
+- The database file is stored in `config/bridgetown_cms.db` and should be gitignored
+- Password hashes are created using BCrypt for security
+- Session keys are encrypted and managed by Rodauth
+
 ## Permalink Configuration
 
 The plugin automatically generates "View Post" links in the admin panel based on your Bridgetown permalink configuration. It supports all four built-in permalink styles:
@@ -238,11 +457,13 @@ permalink: simple
 ## How It Works
 
 - **Backend**: Ruby/Roda routes with file-based storage
+- **Authentication**: Rodauth with SQLite database and BCrypt password hashing
 - **Frontend**: HTMX for dynamic interactions (no page refreshes)
 - **Editor**: EasyMDE markdown editor with live preview and autosave
 - **Styling**: Tailwind CSS (loaded via CDN)
 - **Content**: Standard Bridgetown markdown posts with YAML frontmatter
 - **Storage**: Posts saved to `src/_posts/`, images to `src/images/uploads/`
+- **Database**: User accounts and roles in `config/bridgetown_cms.db` (SQLite)
 - **Editing**: You can edit the markdown directly from the files and it will reflect in the admin panel
 
 ## Requirements
@@ -257,11 +478,22 @@ permalink: simple
 
 The plugin consists of:
 
+### Core Modules
 - **`lib/bridgetown_cms/admin_routes.rb`** - All CRUD operations and HTML rendering
 - **`layouts/bridgetown_cms/admin_layout.erb`** - Admin interface layout with HTMX/Tailwind
 - **`content/bridgetown_cms/admin.md`** - Admin dashboard page
 - **`lib/bridgetown_cms/builder.rb`** - Plugin initialization
 - **`bridgetown.automation.rb`** - Installation automation script
+
+### Authentication Modules
+- **`lib/bridgetown_cms/database.rb`** - SQLite database management with auto-migrations
+- **`lib/bridgetown_cms/rodauth_config.rb`** - Rodauth authentication configuration
+- **`lib/bridgetown_cms/roles.rb`** - Role-based access control (Admin/Author)
+- **`lib/bridgetown_cms/auth_helpers.rb`** - Authentication helper methods
+
+### Database
+- **`config/bridgetown_cms.db`** - SQLite database (auto-created, gitignored)
+- Tables: `accounts`, `cms_roles`, `account_password_reset_keys`, `account_remember_keys`
 
 ## Contributing
 
@@ -287,8 +519,9 @@ If you encounter any issues or have questions, please open an issue on GitHub.
 Future enhancements:
 - [x] Image upload capability
 - [x] Rich text editor (EasyMDE with markdown)
+- [x] User authentication and roles (Rodauth-based)
+- [ ] User management UI in admin panel
 - [ ] Support for custom post types and formats
-- [ ] User authentication and roles
 - [ ] Draft/publish workflow
 - [ ] Category and tag management
 - [ ] Drag-and-drop image uploads

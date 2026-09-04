@@ -3,6 +3,10 @@
 require "bridgetown"
 require "bridgetown_cms/version"
 require "bridgetown_cms/builder"
+require "bridgetown_cms/database"
+require "bridgetown_cms/rodauth_config"
+require "bridgetown_cms/roles"
+require "bridgetown_cms/auth_helpers"
 
 # @param config [Bridgetown::Configuration::ConfigurationDSL]
 Bridgetown.initializer :bridgetown_cms do |config|

@@ -21,6 +21,11 @@ Gem::Specification.new do |spec|
   spec.required_ruby_version = ">= 3.1.0"
 
   spec.add_dependency "bridgetown", ">= 1.2.0", "< 3.0"
+  spec.add_dependency "sequel", "~> 5.0"
+  spec.add_dependency "sqlite3", "~> 1.6"
+  spec.add_dependency "rodauth", "~> 2.0"
+  spec.add_dependency "bcrypt", "~> 3.1"
+  spec.add_dependency "mail", "~> 2.8"
 
   spec.add_development_dependency "bundler"
   spec.add_development_dependency "rake", ">= 13.0"

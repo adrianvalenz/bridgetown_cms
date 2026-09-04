@@ -267,10 +267,56 @@ module BridgetownCms
     end
 
     def self.define_routes(r)
+      # Include authentication helpers
+      r.class.include(AuthHelpers)
+
       # Mount all admin routes under /admin
       r.on "admin" do
-            # HTML endpoints for HTMX (return HTML fragments)
-            r.on "articles" do
+        # Rodauth authentication routes (login, logout, etc.)
+        r.rodauth
+
+        # Setup route for first-time admin creation
+        r.on "setup" do
+          # Only allow setup if no users exist
+          if Database.has_users?
+            r.redirect '/admin'
+          end
+
+          r.get do
+            AdminRoutes.render_setup_page
+          end
+
+          r.post do
+            AdminRoutes.create_first_admin(r.params, r)
+          end
+        end
+
+        # Check if this is first-time setup (no users exist)
+        # Redirect to setup for any other path if no users
+        unless Database.has_users?
+          r.redirect '/admin/setup'
+        end
+
+        # All other routes require authentication
+        # Check if user is authenticated by checking Rodauth's session key
+        unless r.session['bridgetown_cms_session']
+          r.redirect '/admin/login'
+        end
+
+        # For /admin and /admin/dashboard, let Bridgetown handle it (pass through)
+        r.root do
+          # Pass through to Bridgetown to serve the admin.md page
+          # but Bridgetown expects /admin/dashboard based on permalink
+          r.redirect '/admin/dashboard'
+        end
+
+        # Let Bridgetown serve the dashboard page
+        r.on "dashboard" do
+          r.pass
+        end
+
+        # HTML endpoints for HTMX (return HTML fragments)
+        r.on "articles" do
               # GET /admin/articles - Return HTML list of articles
               r.is do
                 r.get do
@@ -508,6 +554,121 @@ module BridgetownCms
               end
             end
       end
+    end
+
+    # ========================================
+    # Authentication & User Management Methods
+    # ========================================
+
+    # Render setup page for first-time admin creation
+    def self.render_setup_page
+      <<~HTML
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Setup - Bridgetown CMS</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+        </head>
+        <body class="bg-gray-100">
+          <div class="min-h-screen flex items-center justify-center">
+            <div class="bg-white p-8 rounded-lg shadow-md w-96">
+              <h1 class="text-2xl font-bold mb-2">Welcome to Bridgetown CMS</h1>
+              <p class="text-gray-600 mb-6">Create your admin account to get started.</p>
+
+              <form method="post" action="/admin/setup">
+                <div class="mb-4">
+                  <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                  <input type="email" id="email" name="email" required
+                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                         placeholder="admin@example.com" />
+                </div>
+
+                <div class="mb-4">
+                  <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                  <input type="password" id="password" name="password" required minlength="8"
+                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                         placeholder="Minimum 8 characters" />
+                </div>
+
+                <div class="mb-6">
+                  <label for="display_name" class="block text-sm font-medium text-gray-700 mb-2">Display Name</label>
+                  <input type="text" id="display_name" name="display_name" required
+                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                         placeholder="Your Name" />
+                </div>
+
+                <button type="submit"
+                        class="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  Create Admin Account
+                </button>
+              </form>
+            </div>
+          </div>
+        </body>
+        </html>
+      HTML
+    end
+
+    # Create first admin account
+    def self.create_first_admin(params, request)
+      require 'bcrypt'
+
+      # Validate input
+      unless params["email"] && params["password"] && params["display_name"]
+        return render_setup_error("All fields are required")
+      end
+
+      unless params["password"].length >= 8
+        return render_setup_error("Password must be at least 8 characters")
+      end
+
+      begin
+        # Hash password
+        password_hash = BCrypt::Password.create(params["password"])
+
+        # Create account
+        account_id = Database.connection[:accounts].insert(
+          email: params["email"],
+          password_hash: password_hash,
+          created_at: Time.now,
+          updated_at: Time.now
+        )
+
+        # Create admin role
+        Roles.create_role(account_id, 'admin', params["display_name"])
+
+        Bridgetown.logger.info "✅", "First admin account created: #{params["email"]}"
+
+        # Redirect to login
+        request.redirect '/admin/login'
+      rescue Sequel::UniqueConstraintViolation
+        render_setup_error("An account with this email already exists")
+      rescue => e
+        Bridgetown.logger.error "❌", "Error creating admin account: #{e.message}"
+        render_setup_error("An error occurred. Please try again.")
+      end
+    end
+
+    # Render setup error page
+    def self.render_setup_error(message)
+      <<~HTML
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Setup Error - Bridgetown CMS</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+        </head>
+        <body class="bg-gray-100">
+          <div class="min-h-screen flex items-center justify-center">
+            <div class="bg-white p-8 rounded-lg shadow-md w-96">
+              <h1 class="text-2xl font-bold text-red-600 mb-4">Setup Error</h1>
+              <p class="text-gray-700 mb-6">#{message}</p>
+              <a href="/admin/setup" class="text-blue-600 hover:text-blue-800">← Try Again</a>
+            </div>
+          </div>
+        </body>
+        </html>
+      HTML
     end
   end
 end

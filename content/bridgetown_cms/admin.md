@@ -1,7 +1,7 @@
 ---
 layout: bridgetown_cms/admin_layout
 title: Admin Dashboard
-permalink: /admin/
+permalink: /admin/dashboard/
 ---
 
 <div class="space-y-8">

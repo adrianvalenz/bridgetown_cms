@@ -38,3 +38,11 @@ test/dest
 .bridgetown-webpack
 
 .env
+
+# CMS Database
+bridgetown_cms.db
+bridgetown_cms.db-shm
+bridgetown_cms.db-wal
+*.db
+*.db-shm
+*.db-wal
